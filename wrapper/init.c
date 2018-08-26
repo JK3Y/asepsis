@@ -43,7 +43,8 @@ void asepsis_setup_logging(void) {
         return;
     }
     asepsis_logging_initialized = 1;
-	g_asepsis_asl = asl_open("Asepsis", "dylib", 0);
+    g_asepsis_asl = asl_open("Asepsis", "dylib", 0);
+//    g_asepsis_asl = Log
 	g_asepsis_log_msg = asl_new(ASL_TYPE_MSG);
 	asl_set(g_asepsis_log_msg, ASL_KEY_SENDER, "Asepsis");
 }
