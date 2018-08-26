@@ -1,14 +1,15 @@
 ## Asepsis == solution for .DS_Store pollution.
 
-### WARNING: No longer supported under OS X 10.11 (El Capitan)
+### Compatible with macOS Mojave!
+### WARNING: This fork of Asepsis is not maintained by BinaryAge. Use at your own risk.
 
-#### For end-user info please visit [http://asepsis.binaryage.com](http://asepsis.binaryage.com)
+#### For end-user info and versions compatible with macOS < 10.13 please visit [http://asepsis.binaryage.com](http://asepsis.binaryage.com)
 
 ### Installation from sources
 
-You will need Xcode5 for building it from sources:
+You will need Xcode 8 for building it from sources:
 
-    git clone https://github.com/binaryage/asepsis
+    git clone https://github.com/JK3Y/asepsis.git
     cd asepsis
     git submodule update --init
     rake build
