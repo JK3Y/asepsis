@@ -11,7 +11,6 @@ You will need Xcode 8 for building it from sources:
 
     git clone https://github.com/JK3Y/asepsis.git
     cd asepsis
-    git submodule update --init
     rake build
     rake install
     sudo reboot
