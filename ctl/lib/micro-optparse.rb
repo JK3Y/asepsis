@@ -44,7 +44,7 @@ class Parser
       @options.each do |o|
         @used_short << short = o[2][:short] || short_from(o[0])
         @result[o[0]] = o[2][:default] || false # set default
-        klass = o[2][:default].class == Fixnum ? Integer : o[2][:default].class
+        klass = o[2][:default].is_a?(Integer) ? Integer : o[2][:default].class
 
         if [TrueClass, FalseClass, NilClass].include?(klass) # boolean switch
           p.on("-" << short, "--[no-]" << o[0].to_s.gsub("_", "-"), o[1]) {|x| @result[o[0]] = x}
