@@ -1,6 +1,4 @@
 [submodule "sparkle"]
 	path = sparkle
 	url = https://github.com/sparkle-project/Sparkle.git
-[submodule "uninstaller"]
-	path = uninstaller
-	url = https://github.com/binaryage/uninstaller.git
+	
