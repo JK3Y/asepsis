@@ -9,8 +9,7 @@
 int g_asepsis_disabled = 0;
 pthread_mutex_t g_asepsis_mutex;
 pthread_mutexattr_t g_asepsis_mutex_attr;
-aslclient g_asepsis_asl = NULL;
-aslmsg g_asepsis_log_msg = NULL;
+os_log_t g_asepsis_log = NULL;
 uint32_t g_asepsis_executable_path_length = 1024;
 char g_asepsis_executable_path[1024] = "!";
 
@@ -36,17 +35,14 @@ static int asepsis_process_is_whitelisted(const char* executable) {
     return 0;
 }
 
-// create a new ASL log
+// create a new log
 void asepsis_setup_logging(void) {
     static int asepsis_logging_initialized = 0;
     if (asepsis_logging_initialized) {
         return;
     }
     asepsis_logging_initialized = 1;
-    g_asepsis_asl = asl_open("Asepsis", "dylib", 0);
-//    g_asepsis_asl = Log
-	g_asepsis_log_msg = asl_new(ASL_TYPE_MSG);
-	asl_set(g_asepsis_log_msg, ASL_KEY_SENDER, "Asepsis");
+    g_asepsis_log = os_log_create("Asepsis", "wrapper");
 }
 
 static void asepsis_setup_executable_path() {

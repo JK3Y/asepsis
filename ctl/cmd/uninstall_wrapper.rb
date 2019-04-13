@@ -10,7 +10,7 @@ def cmd_uninstall_wrapper(options)
       sorted_filenames = filenames.sort_by { |filename| File.mtime(filename) }
       latest_backup = sorted_filenames[-1]
       sys("#{sudo} cp -a \"#{latest_backup}\"/* \"#{DS_LIB_FOLDER}\"")
-      sys("#{sudo} \"#{CODESIGN_PATH}\" --timestamp=none --force --sign - \"#{DS_LIB_FOLDER}/DesktopServicesPriv\"") unless lions?
+      sys("#{sudo} \"#{CODESIGN_PATH}\" --deep --timestamp=none --force --sign - \"#{DS_LIB_FOLDER}/DesktopServicesPriv\"") unless lions?
       exit
     end
 
@@ -19,7 +19,7 @@ def cmd_uninstall_wrapper(options)
       die("wrapper framework seems not to be installed (#{DS_LIB_RELOCATED_FOLDER} does not exist)")
     end
 
-    # this is an extra inteligence for this scenario:
+    # this is an extra intelligence for this scenario:
     #   1. user has OS X 10.9.2
     #   2. user installs Asepsis, backup of v10.9.2 DesktopServicesPriv is saved into DS_LIB_BACKUP_FOLDER
     #   3. user updates system to OS X 10.9.3, this will overwrite DesktopServicesPriv with v10.9.3
@@ -42,7 +42,7 @@ def cmd_uninstall_wrapper(options)
       die("the backup folder is missing! (#{DS_LIB_BACKUP_FOLDER} does not exist)") unless File.exists? DS_LIB_BACKUP_FOLDER
 
       sys("#{sudo} cp -a \"#{DS_LIB_BACKUP_FOLDER}\"/* \"#{DS_LIB_FOLDER}\"") unless skip_restore
-      sys("#{sudo} \"#{CODESIGN_PATH}\" --timestamp=none --force --sign - \"#{DS_LIB_FOLDER}/DesktopServicesPriv\"") unless lions?
+      sys("#{sudo} \"#{CODESIGN_PATH}\" --deep --timestamp=none --force --sign - \"#{DS_LIB_FOLDER}/DesktopServicesPriv\"") unless lions?
       sys("#{sudo} rm -rf \"#{DS_LIB_BACKUP_FOLDER}\"")
       sys("#{sudo} rm -rf \"#{DS_LIB_RELOCATED_FOLDER}\"")
       sys("#{sudo} rm \"#{DS_LIB_ASEPSIS_REV}\"")

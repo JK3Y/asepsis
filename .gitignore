@@ -2,3 +2,5 @@
 /tmp
 keys/dsa_priv.pem
 *.xccheckout
+xcuserdata/
+xcshareddata/

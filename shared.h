@@ -56,7 +56,7 @@ ASEPSIS_INLINE int isDSStorePath(const char* path) {
     size_t l = strlen(path);
     if (l<DSSTORE_LEN+1) return 0;
     const char* name = path+l-DSSTORE_LEN-1;
-    if (!strcmp(name, "/.DS_Store")==0) {
+    if (strcmp(name, "/.DS_Store")!=0) {
         return 0;
     }
     

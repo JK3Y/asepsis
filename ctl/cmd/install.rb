@@ -11,7 +11,6 @@ def cmd_install(options)
     sys!("#{ctl} launch_daemon")
     sys!("#{ctl} disable_warnings") if prior_yosemite?
     sys!("#{ctl} install_wrapper")
-    sys!("#{ctl} install_updater")
 
     # remove (possibly) scheduled uninstall (pathological case when someone uninstalls and installs without restart)
     sys!("sudo rm \"/Library/LaunchDaemons/com.binaryage.asepsis.uninstall.plist\"") if File.exists? "/Library/LaunchDaemons/com.binaryage.asepsis.uninstall.plist"

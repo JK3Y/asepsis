@@ -4,143 +4,21 @@ BUILD_TOOL_POSTFIX = ENV["toolpostfix"] || unless `which xcpretty`.empty? then '
 ROOT_DIR = File.expand_path('.')
 BIN_DIR = File.join(ROOT_DIR, 'bin')
 RELEASE_DIR = File.join(ROOT_DIR, 'releases')
-PAYLOADS_DIR = File.join(ROOT_DIR, 'payloads')
-INSTALLER_DIR = File.join(ROOT_DIR, 'installer')
-
-TMP_ROOT = File.join(ROOT_DIR, 'tmp')
-TMP_DIR = File.join(TMP_ROOT, "asepsis-installer")
 
 INSTALL_DIR = "/Library/Application Support/Asepsis"
 
-PRIVATE_KEY = File.join(ROOT_DIR, '..', 'keys', 'asepsis', 'dsa_priv.pem')
-
-PUBLISH_PREFIX_URL = "http://downloads.binaryage.com"
-CHANGELOG_PREFIX_URL = "http://asepsis.binaryage.com"
-
-################################################################################################
-# dependencies
-
-require 'rubygems'
-begin
-    require 'colored'
-rescue LoadError
-    raise 'You must "gem install colored" to use terminal colors'
-end
-
-############################################################################################
-
 def die(msg, status=1)
-  puts "Error[#{status||$?}]: #{msg}".red
+  puts "Error[#{status||$?}]: #{msg}"
   exit status||$?
 end
 
 def announce(cmd)
-    puts "> " + cmd.yellow
+    puts "> " + cmd
 end
 
 def sys(cmd)
     announce(cmd)
     system(cmd)
-end
-
-def version()
-  $version = ENV["version"] or die("specify version")
-end
-
-def revision()
-  $revision = `git rev-parse HEAD`.strip
-  $short_revision = $revision[0...7]
-end
-
-def dirty_repo_warning()
-  is_clean = `git status`.match(/working directory clean/)
-  puts "Repository is not clean! You should commit all changes before releasing.".red unless is_clean
-end
-
-def patch(path, replacers)
-  puts "#{'Patching'.magenta} #{path.yellow}"
-  lines = []
-  File.open(path, "r") do |f|
-    f.each do |line|
-      replacers.each do |r|
-        line.gsub!(r[0], r[1])
-      end
-      lines << line
-    end
-  end
-  File.open(path, "w") do |f|
-      f << lines.join
-  end
-end
-
-def codesign(path)
-  sys("codesign --force --sign \"Developer ID Application: BinaryAge Limited\" \"#{path}\"")
-end
-
-def productsign(path)
-  tmp_path = path+"-tmp"
-  sys("mv \"#{path}\" \"#{tmp_path}\"")
-  sys("productsign --sign \"Developer ID Installer: BinaryAge Limited\" \"#{tmp_path}\" \"#{path}\"")
-  sys("rm \"#{tmp_path}\"")
-end
-
-def lipo(dir)
-  puts "Doing liposuction in #{dir.blue} ..."
-  Dir.chdir(dir) do
-    binaries = []
-    Dir.glob("**/Frameworks/*.framework") do |framework|
-      base = File.basename framework, ".framework"
-      full = File.join(framework, base)
-      binaries << full
-    end
-    Dir.glob("**/MacOS/*") do |exe|
-      binaries << exe
-    end
-    binaries.reject! {|file| File.symlink? file }
-    binaries.each do |binary|
-      sys("lipo -thin x86_64 -output \"#{binary}\" \"#{binary}\"") unless `lipo -info \"#{binary}\"` =~ /^Non-fat/
-    end
-  end
-end
-
-def strip_symbols(dir)
-  puts "Stripping symbols in #{dir.blue} ..."
-  
-  symbols = []
-  
-  Dir.chdir(dir) do
-    binaries = []
-    Dir.glob("**/*") do |file|
-      next unless File.executable? file
-      next unless `file \"#{file}\"` =~ /Mach-O/
-      binaries << file
-    end
-    binaries.reject! {|file| File.symlink? file }
-    binaries.each do |binary|
-      obfuscated_symbols = `nm -a "#{binary}" | grep " [+-]\\[\\\\$"`
-      obfuscated_symbols.split("\n").each do |sym|
-        sym =~ /^(.*) ([+-]\[\$.*)$/
-        symbols << $2
-      end
-      sys("strip -Sx \"#{binary}\"")
-    end
-  end
-  
-  symbols = symbols.sort.uniq
-end
-
-############################################################################################
-
-def release_version_from_filename(n) # /Users/darwin/code/totalfinder/payloads/TotalFinder-0.7.1.txt
-    p = File.basename(n, ".txt").split("-")[1]
-    n = p.split(".")
-    while n.size < 3 do
-      n << "0"
-    end
-    x = (n[0]||"0").to_i
-    y = (n[1]||"0").to_i
-    z = (n[2]||"0").to_i
-    x*1000000 + y*1000 + z
 end
 
 ############################################################################################
@@ -167,117 +45,8 @@ end
 desc "clean"
 task :clean do
     sys("rm -rf \"#{BIN_DIR}\"")
-    sys("rm -rf \"#{TMP_DIR}\"")
     sys(BUILD_TOOL+' clean -project Asepsis.xcodeproj -scheme build')
     die("clean failed") unless $?==0
-end
-
-desc "test asepsis"
-task :test do
-    sys("\"#{INSTALL_DIR}/Asepsis/asepsisTest\"")
-end
-
-desc "builds installer+unistaller, point it to products=<path>"
-task :release do
-    puts "#{'Checking environment...'.magenta}"
-    version()
-    sys("mkdir -p #{RELEASE_DIR}") unless File.exists? RELEASE_DIR
-
-    # work on copy, because we do some dirty patching of sources
-    sys("rm -rf \"#{TMP_DIR}\"")
-    sys("mkdir -p \"#{TMP_DIR}\"")
-    sys("rsync -a --exclude=\"#{TMP_DIR}\" \"#{ROOT_DIR}/\" \"#{TMP_DIR}\"")
-    Dir.chdir(TMP_DIR) do
-
-        # do some patching prior compilation
-        patch("daemon/main.c", [
-            ["asepsisd v##VERSION##", "asepsisd v#{$version}"]
-        ])
-
-        patch("updater/AsepsisUpdater-Info.plist", [
-            ['##VERSION##', $version]
-        ])
-        patch("uninstaller-resources/Uninstaller-Info.plist", [
-            ['##VERSION##', $version]
-        ])
-
-        sys("rake build")
-
-        patch('bin/Asepsis/ctl/asepsisctl', [
-            ['##VERSION##', "#{$version}"],
-            ['##INSTALLER_TITLE##', "Asepsis #{$version}"]
-        ])
-
-        installer_profile = File.join("bin", "installer-patched.pkgproj")
-        sys("cp \"installer/installer.pkgproj\" \"#{installer_profile}\"")
-        patch(installer_profile, [
-            ['##VERSION##', $version],
-            ['##INSTALLER_TITLE##', "Asepsis #{$version}"],
-            ["/Users/darwin/code/asepsis", "#{TMP_DIR}"],
-            ["#{TMP_DIR}/release", RELEASE_DIR]
-        ])
-        
-        lipo("bin/Asepsis")
-        strip_symbols("bin/Asepsis")
-
-        uninstaller = File.join("bin", "Asepsis", "Asepsis Uninstaller.app")
-        codesign(uninstaller)
-
-        codesign(File.join("bin", "Asepsis", "AsepsisUpdater.app", "Contents", "Frameworks", "Sparkle.framework/Versions/A/Resources/finish_installation.app"))
-        codesign(File.join("bin", "Asepsis", "AsepsisUpdater.app", "Contents", "Frameworks", "Sparkle.framework/Versions/A"))
-        codesign(File.join("bin", "Asepsis", "AsepsisUpdater.app"))
-        codesign(File.join("bin", "Asepsis", "DesktopServicesPrivWrapper"))
-        codesign(File.join("bin", "Asepsis", "install_name_tool"))
-        codesign(File.join("bin", "Asepsis", "asepsisTest"))
-        codesign(File.join("bin", "Asepsis", "asepsisd"))
-        codesign(File.join("bin", "Asepsis", "Asepsis Uninstaller.app"))
-
-        release = File.join(RELEASE_DIR, "Asepsis.pkg") # THIS MUST BE THE SAME NAME AS OF THE APP! REQUIRED BY SPARKLE
-        sys("rm -rf \"#{release}\"") if File.exist? release
-        die("build failed") unless $?==0
-
-        sys("packagesbuild -v -F \"#{TMP_DIR}\" \"#{installer_profile}\"")
-        die("build failed") unless $?==0
-
-        # codesign the pkg
-        productsign(release)
-
-        installer_icon = File.join("installer", "installer.icns")
-        sys("./installer/bin/setfileicon \"#{installer_icon}\" \"#{release}\"")
-        die("build failed") unless $?==0
-
-        releasedmg = File.join(RELEASE_DIR, "Asepsis-#{$version}.dmg")
-        sys("rm -rf \"#{releasedmg}\"") if File.exist? releasedmg
-        die("build failed") unless $?==0
-
-        readme_source = File.join("installer", "readme.pdf")
-
-        sys("hdiutil create \"#{releasedmg}\" -volname \"Asepsis\" -format UDBZ -fs HFS+ -srcfolder \"#{release}\" -srcfolder \"#{uninstaller}\" -srcfolder \"#{readme_source}\"")
-        die("build failed") unless $?==0
-
-        size = File.size(releasedmg)
-        sig = `ruby "sparkle/sign_update.rb" "#{releasedmg}" "#{PRIVATE_KEY}"`.strip
-        die("build failed") unless $?==0
-
-        snippet = "\
-        <item>
-            <title>Version #{$version}</title>
-            <sparkle:releaseNotesLink>#{CHANGELOG_PREFIX_URL}/changelog.html</sparkle:releaseNotesLink>
-            <pubDate>#{Time.new}</pubDate>
-            <enclosure url=\"#{PUBLISH_PREFIX_URL}/Asepsis-#{$version}.dmg\" sparkle:version=\"#{$version}\" length=\"#{size}\" type=\"application/octet-stream\" sparkle:dsaSignature=\"#{sig}\"/>
-            <sparkle:minimumSystemVersion>10.8.0</sparkle:minimumSystemVersion>
-        </item>"
-
-        puts snippet
-        puts
-        puts "Don't forget: ".red+"git tag -a as-v#{$version} -m \"Release #{$version}\"".green
-        puts "#{PUBLISH_PREFIX_URL}/Asepsis-#{$version}.dmg".blue
-    end
-end
-
-desc "monitor fs usage for DS_Store operations"
-task :fs_usage do
-    sys("sudo fs_usage | grep DS_Store")
 end
 
 task :default => :build

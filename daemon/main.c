@@ -36,8 +36,7 @@ static char* format_binary(unsigned long x);
 int g_asepsis_disabled = 0;
 pthread_mutex_t g_asepsis_mutex;
 pthread_mutexattr_t g_asepsis_mutex_attr;
-aslclient g_asepsis_asl = NULL;
-aslmsg g_asepsis_log_msg = NULL;
+os_log_t g_asepsis_log = NULL;
 
 static int g_single_instance_lock = 0;
 
@@ -140,16 +139,14 @@ static void releaseLock() {
     unlink(DAEMON_LOCK_PATH);
 }
 
-// create a new ASL log
+// create a new log
 void asepsis_setup_logging(void) {
     static int asepsis_logging_initialized = 0;
     if (asepsis_logging_initialized) {
         return;
     }
     asepsis_logging_initialized = 1;
-    g_asepsis_asl = asl_open("Asepsis", "daemon", 0);
-    g_asepsis_log_msg = asl_new(ASL_TYPE_MSG);
-    asl_set(g_asepsis_log_msg, ASL_KEY_SENDER, "Asepsis");    
+    g_asepsis_log = os_log_create("Asepsis", "daemon");   
 }
 
 // this is called first time Asepsis is going to do some action
@@ -317,8 +314,8 @@ static int asepsis_handle_rename(const char* path1, const char* path2) {
 }
 
 static void enqueue_command(command_t cmd);
-static command_t fetch_command();
-static void* consumer();
+static command_t fetch_command(void);
+static void* consumer(void* args);
 
 void enqueue_command(command_t cmd) {
     g_command_buffer[g_back_command] = cmd;
@@ -335,7 +332,7 @@ command_t fetch_command() {
 }
 
 // this is a worker thread responsible for consuming commands produced by the main thread
-void* consumer() {
+void* consumer(void* args) {
     DLOG("Consumer: started\n");
     command_t cmd;
     while (1) {

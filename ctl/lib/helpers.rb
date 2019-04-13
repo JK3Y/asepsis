@@ -106,8 +106,8 @@ end
 def os_version_check()
   return true if File.exists?(File.expand_path("~/.no-asepsis-os-restriction"))
   
-  `sw_vers -productVersion|grep '10\\.\\(8\\|9\\|10\\)'`
-  die("Asepsis #{ASEPSISCTL_VERSION} can be only installed under OS X versions 10.8, 10.9 and 10.10\nCheck out http://asepsis.binaryage.com for updated version.") if $?!=0
+  `sw_vers -productVersion|grep '10\\.\\(8\\|9\\|10\\|11\\|12\\|13\\|14\\)'`
+  die("Asepsis #{ASEPSISCTL_VERSION} can be only installed under OS X versions 10.8, 10.9, 10.10, 10.11, 10.12, 10.13, and 10.14.\nCheck out http://asepsis.binaryage.com for updated version.") if $?!=0
 end
 
 def prior_yosemite?
@@ -133,12 +133,4 @@ def os_version_marker()
   rescue
     ""
   end
-end
-
-def is_library_fat_with_both_slices?(path)
-  report = `file -b \"#{path}\"`
-  return false unless report =~ /Mach-O universal binary with 2 architectures/
-  return false unless report =~ /Mach-O 64-bit dynamically linked shared library x86_64/
-  return false unless report =~ /Mach-O dynamically linked shared library i386/
-  return true
 end
