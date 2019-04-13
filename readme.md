@@ -6,7 +6,7 @@ This has been tested and is working on macOS 10.13/10.14
 
 ### WARNING: This fork of Asepsis is not maintained by BinaryAge. Use at your own risk.
 
-##### For end-user info please visit [http://asepsis.binaryage.com](http://asepsis.binaryage.com)
+#### For end-user info please visit [http://asepsis.binaryage.com](http://asepsis.binaryage.com)
 
 ## Installation from sources
 #### Requirements
@@ -24,4 +24,4 @@ Reboot your computer to complete installation.
     asepsisctl uninstall
 Reboot your computer to finish uninstallation.
 
-##### License: [MIT-Style](license.txt)
+#### License: [MIT-Style](license.txt)
